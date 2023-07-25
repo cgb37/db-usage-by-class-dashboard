@@ -85,34 +85,33 @@ def remove_quotes():
     return f"Quotes removed from 'database' column. Data saved to '{csv_file}' successfully."
 
 
-def strip_before_second_comma(string):
-    split_string = string.split(',', maxsplit=2)
-    if len(split_string) >= 3:
-        value = split_string[2]
-        if value.startswith('"') and value.endswith('"'):
-            return value[1:-1].strip()
-        return value.strip()
-    return string
-
-@app.route('/cleandata')
-def clean_data():
-    csv_file_url = 'https://raw.githubusercontent.com/cgb37/db-usage-by-class-dashboard/main/faker_data.csv'
+@app.route('/cleanmajor')
+def clean_major():
+    csv_file_url = 'https://raw.githubusercontent.com/cgb37/db-usage-by-class-dashboard/main/noquotes.csv'
     response = requests.get(csv_file_url)
     lines = response.text.strip().split('\n')
 
-    cleaned_data = []
+    data = []
     for line in lines:
-        row = line.split(',')
-        if len(row) >= 3:
-            cleaned_data.append([strip_before_second_comma(row[2])])
+        csv_reader = csv.reader(StringIO(line), delimiter=',', quotechar='"')
+        for row in csv_reader:
+            if len(row) >= 3:
+                major = row[2].strip()
+                last_comma_index = major.rfind(',')
+                if last_comma_index != -1:
+                    major = major[last_comma_index + 1:].strip()
+                row[2] = major
+            data.append(row)
 
-    # Write data to a new CSV file
-    csv_file = 'cleaned_data.csv'
+    # Write data to a new CSV file with cleaned major values
+    csv_file = 'cleaned_major.csv'
     with open(csv_file, 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerows(cleaned_data)
+        writer.writerows(data)
 
-    return f"Cleaned data has been saved to '{csv_file}' successfully."
+    return f"Major column cleaned. Data saved to '{csv_file}' successfully."
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
